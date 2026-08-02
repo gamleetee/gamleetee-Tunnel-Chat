@@ -1,0 +1,158 @@
+name: Mobile Android Release 0.2.2
+
+on:
+  push:
+    branches:
+      - agent/mobile-release-v0.2.2
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-android-release-0.2.2
+  cancel-in-progress: false
+
+jobs:
+  release-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout release source
+        uses: actions/checkout@v5
+
+      - name: Validate signing secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for variable in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "Не задан GitHub Secret: $variable" >&2
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Restore release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/gamleetee-release.jks"
+          chmod 600 "$RUNNER_TEMP/gamleetee-release.jks"
+          test -s "$RUNNER_TEMP/gamleetee-release.jks"
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm install --no-audit --no-fund
+
+      - name: Verify mobile configuration
+        working-directory: mobile
+        run: npm run verify
+
+      - name: Build signed APK and AAB
+        working-directory: mobile
+        env:
+          ANDROID_KEYSTORE_FILE: ${{ runner.temp }}/gamleetee-release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_VERSION_NAME: 0.2.2
+          ANDROID_VERSION_CODE: 4
+        run: npm run build:android:release
+
+      - name: Verify signature and prepare release files
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk='mobile/android/app/build/outputs/apk/release/app-release.apk'
+          aab='mobile/android/app/build/outputs/bundle/release/app-release.aab'
+          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+
+          mkdir -p artifacts
+          "$apksigner" verify --verbose --print-certs "$apk" | tee artifacts/APK-SIGNATURE.txt
+
+          certificate_digest=$(awk -F': ' '/certificate SHA-256 digest/{print toupper($2); exit}' artifacts/APK-SIGNATURE.txt)
+          certificate_fingerprint=$(echo "$certificate_digest" | sed 's/../&:/g; s/:$//')
+          expected_fingerprint='57:58:6C:A8:AB:1A:79:57:DE:01:20:6C:21:42:A5:E6:84:B1:D9:76:0C:17:45:7B:89:92:04:C4:7A:65:B7:CD'
+
+          if [[ "$certificate_fingerprint" != "$expected_fingerprint" ]]; then
+            echo "Неверный сертификат APK: $certificate_fingerprint" >&2
+            exit 1
+          fi
+
+          cp "$apk" artifacts/gamleetee-chat.apk
+          cp "$aab" artifacts/gamleetee-chat.aab
+
+          jq -n --arg fingerprint "$certificate_fingerprint" '
+            [{
+              relation: ["delegate_permission/common.handle_all_urls"],
+              target: {
+                namespace: "android_app",
+                package_name: "ru.gamleetee.gamchat",
+                sha256_cert_fingerprints: [$fingerprint]
+              }
+            }]
+          ' > artifacts/assetlinks.json
+
+          sha256sum artifacts/gamleetee-chat.apk artifacts/gamleetee-chat.aab artifacts/assetlinks.json > artifacts/SHA256SUMS.txt
+
+      - name: Write release notes
+        shell: bash
+        run: |
+          cat > artifacts/RELEASE-NOTES.md <<'EOF'
+          ## gamchat 0.2.2
+
+          Официальное исправление Android.
+
+          - полученные файлы теперь сохраняются нативно в `Documents/gamchat`;
+          - большие файлы записываются частями, без передачи всего файла одним вызовом WebView;
+          - кнопка «Все приложения» открывает страницу загрузок `gamchat.ru/apps/`;
+          - сохранены полноэкранный чат, красный домик выхода и приватные уведомления.
+
+          Сообщения и файлы не сохраняются на сервере. Ключ комнаты остаётся во фрагменте `#` ссылки-приглашения.
+          EOF
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create mobile-v0.2.2 \
+            artifacts/gamleetee-chat.apk \
+            artifacts/gamleetee-chat.aab \
+            artifacts/assetlinks.json \
+            artifacts/SHA256SUMS.txt \
+            artifacts/APK-SIGNATURE.txt \
+            --target e6acc6c475a91ede198008557a7b739edef80b9d \
+            --title 'gamchat 0.2.2' \
+            --notes-file artifacts/RELEASE-NOTES.md
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/gamleetee-release.jks"
