@@ -54,7 +54,7 @@ async function bootstrap() {
 
   if (!requestedRoom && !secret) return;
   if (!requestedRoom || !secret) {
-    throw new Error('The invitation link is incomplete. Ask the room creator for a new link.');
+    throw new Error('Ссылка-приглашение неполная. Попросите создателя комнаты отправить новую ссылку.');
   }
 
   roomId = requestedRoom;
@@ -89,7 +89,7 @@ function enterChat(inviteUrl) {
   elements.chat.hidden = false;
   elements.invite.value = inviteUrl;
   elements.roomCode.textContent = roomId.slice(0, 8);
-  setConnectionState('connecting', 'Connecting to the secure room…');
+  setConnectionState('connecting', 'Подключение к защищённой комнате…');
   updateControls();
 }
 
@@ -98,29 +98,29 @@ function connectSocket() {
   socket = new WebSocket(`${protocol}//${window.location.host}/ws?room=${encodeURIComponent(roomId)}`);
 
   socket.addEventListener('open', () => {
-    setConnectionState('waiting', 'Connected. Waiting for the second participant…');
+    setConnectionState('waiting', 'Подключено. Ожидание второго участника…');
   });
 
   socket.addEventListener('message', (event) => {
     receiveQueue = receiveQueue
       .then(() => handleSocketMessage(event.data))
       .catch((error) => {
-        console.error('Unable to process incoming message', error);
-        addSystemMessage('An encrypted message could not be decrypted. The invitation keys may differ.');
+        console.error('Не удалось обработать входящее сообщение', error);
+        addSystemMessage('Не удалось расшифровать сообщение. Возможно, ключи в ссылках-приглашениях отличаются.');
       });
   });
 
   socket.addEventListener('close', (event) => {
     peerCount = 0;
     const message = event.code === 4003
-      ? 'This room already has two participants.'
-      : 'Disconnected from the tunnel.';
+      ? 'В этой комнате уже находятся два участника.'
+      : 'Соединение с туннелем разорвано.';
     setConnectionState('offline', message);
     updateControls();
   });
 
   socket.addEventListener('error', () => {
-    setConnectionState('offline', 'Unable to connect to the tunnel server.');
+    setConnectionState('offline', 'Не удалось подключиться к серверу туннеля.');
   });
 }
 
@@ -142,16 +142,16 @@ function handleSystemEvent(event) {
     peerCount = event.peerCount;
   } else if (event.event === 'peer-joined') {
     peerCount = event.peerCount;
-    addSystemMessage('The second participant joined the room.');
+    addSystemMessage('Второй участник вошёл в комнату.');
   } else if (event.event === 'peer-left') {
     peerCount = event.peerCount;
-    addSystemMessage('The other participant left the room.');
+    addSystemMessage('Другой участник вышел из комнаты.');
   }
 
   if (peerCount === 2) {
-    setConnectionState('online', 'Encrypted tunnel active');
+    setConnectionState('online', 'Зашифрованный туннель активен');
   } else {
-    setConnectionState('waiting', 'Waiting for the second participant…');
+    setConnectionState('waiting', 'Ожидание второго участника…');
   }
 
   updateControls();
@@ -172,7 +172,7 @@ async function handleEncryptedPayload(payload) {
       finishIncomingTransfer(payload);
       break;
     default:
-      throw new Error('Unknown encrypted payload type.');
+      throw new Error('Неизвестный тип зашифрованных данных.');
   }
 }
 
@@ -189,9 +189,9 @@ async function sendChatMessage(event) {
 }
 
 async function sendFile(file) {
-  if (!canSend()) throw new Error('The second participant is not connected yet.');
+  if (!canSend()) throw new Error('Второй участник ещё не подключён.');
   if (file.size > MAX_FILE_BYTES) {
-    throw new Error('The current MVP accepts files up to 100 MB.');
+    throw new Error('Текущая версия принимает файлы размером до 100 МБ.');
   }
 
   const transferId = crypto.randomUUID();
@@ -219,11 +219,11 @@ async function sendFile(file) {
       data: bytesToBase64Url(chunk)
     });
 
-    updateTransferCard(transfer, ((index + 1) / totalChunks) * 100, 'Sending…');
+    updateTransferCard(transfer, ((index + 1) / totalChunks) * 100, 'Отправка…');
   }
 
   await sendEncrypted({ kind: 'file-end', transferId });
-  updateTransferCard(transfer, 100, 'Sent');
+  updateTransferCard(transfer, 100, 'Отправлено');
 }
 
 function startIncomingTransfer(payload) {
@@ -235,7 +235,7 @@ function startIncomingTransfer(payload) {
     !Number.isInteger(payload.totalChunks) ||
     payload.totalChunks < 0
   ) {
-    throw new Error('Invalid file metadata.');
+    throw new Error('Некорректные сведения о файле.');
   }
 
   incomingTransfers.set(payload.transferId, {
@@ -249,7 +249,7 @@ function startIncomingTransfer(payload) {
 function receiveFileChunk(payload) {
   const transfer = incomingTransfers.get(payload.transferId);
   if (!transfer || !Number.isInteger(payload.index) || payload.index < 0 || payload.index >= transfer.totalChunks) {
-    throw new Error('Invalid file chunk.');
+    throw new Error('Получена некорректная часть файла.');
   }
 
   if (!transfer.chunks[payload.index]) {
@@ -260,13 +260,13 @@ function receiveFileChunk(payload) {
   const progress = transfer.totalChunks === 0
     ? 100
     : (transfer.receivedChunks / transfer.totalChunks) * 100;
-  updateTransferCard(transfer.card, progress, 'Receiving…');
+  updateTransferCard(transfer.card, progress, 'Получение…');
 }
 
 function finishIncomingTransfer(payload) {
   const transfer = incomingTransfers.get(payload.transferId);
   if (!transfer || transfer.receivedChunks !== transfer.totalChunks) {
-    throw new Error('The file transfer is incomplete.');
+    throw new Error('Передача файла не завершена.');
   }
 
   const blob = new Blob(transfer.chunks, { type: transfer.mime });
@@ -274,19 +274,19 @@ function finishIncomingTransfer(payload) {
   const link = document.createElement('a');
   link.href = downloadUrl;
   link.download = transfer.name;
-  link.textContent = 'Download file';
+  link.textContent = 'Скачать файл';
   link.className = 'download-link';
   link.addEventListener('click', () => setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000), {
     once: true
   });
 
   transfer.card.querySelector('.transfer-actions').append(link);
-  updateTransferCard(transfer.card, 100, 'Received');
+  updateTransferCard(transfer.card, 100, 'Получено');
   incomingTransfers.delete(payload.transferId);
 }
 
 async function sendEncrypted(payload) {
-  if (!canSend()) throw new Error('The encrypted tunnel is not ready.');
+  if (!canSend()) throw new Error('Зашифрованный туннель ещё не готов.');
   const envelope = await encryptPayload(roomKey, payload);
   socket.send(envelope);
 }
@@ -296,7 +296,7 @@ async function waitForSocketDrain() {
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
 
-  if (!canSend()) throw new Error('The other participant disconnected during the transfer.');
+  if (!canSend()) throw new Error('Другой участник отключился во время передачи файла.');
 }
 
 function canSend() {
@@ -309,8 +309,8 @@ function updateControls() {
   elements.send.disabled = !enabled;
   elements.fileButton.disabled = !enabled;
   elements.message.placeholder = enabled
-    ? 'Write a message…'
-    : 'Waiting for the second participant…';
+    ? 'Введите сообщение…'
+    : 'Ожидание второго участника…';
 }
 
 function addChatMessage(text, direction, sentAt) {
@@ -322,7 +322,7 @@ function addChatMessage(text, direction, sentAt) {
 
   const time = document.createElement('time');
   time.dateTime = sentAt;
-  time.textContent = new Intl.DateTimeFormat(undefined, {
+  time.textContent = new Intl.DateTimeFormat('ru-RU', {
     hour: '2-digit',
     minute: '2-digit'
   }).format(new Date(sentAt));
@@ -352,7 +352,7 @@ function createTransferCard(name, size, direction) {
 
   const status = document.createElement('span');
   status.className = 'transfer-status';
-  status.textContent = direction === 'incoming' ? 'Preparing to receive…' : 'Preparing to send…';
+  status.textContent = direction === 'incoming' ? 'Подготовка к получению…' : 'Подготовка к отправке…';
 
   const progress = document.createElement('progress');
   progress.max = 100;
@@ -379,14 +379,14 @@ function setConnectionState(state, text) {
 async function copyInviteLink() {
   await navigator.clipboard.writeText(elements.invite.value);
   const original = elements.copyInvite.textContent;
-  elements.copyInvite.textContent = 'Copied';
+  elements.copyInvite.textContent = 'Скопировано';
   setTimeout(() => {
     elements.copyInvite.textContent = original;
   }, 1_500);
 }
 
 function leaveRoom() {
-  socket?.close(1000, 'User left');
+  socket?.close(1000, 'Пользователь вышел');
   const cleanUrl = new URL(window.location.href);
   cleanUrl.search = '';
   cleanUrl.hash = '';
@@ -395,7 +395,7 @@ function leaveRoom() {
 
 function handleTransferError(error) {
   console.error(error);
-  addSystemMessage(error.message || 'File transfer failed.');
+  addSystemMessage(error.message || 'Не удалось передать файл.');
 }
 
 function showFatal(message) {
@@ -407,8 +407,8 @@ function showFatal(message) {
 }
 
 function formatBytes(bytes) {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB'];
+  if (bytes === 0) return '0 Б';
+  const units = ['Б', 'КБ', 'МБ', 'ГБ'];
   const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
   return `${(bytes / 1024 ** index).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
