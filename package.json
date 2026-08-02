@@ -12,6 +12,6 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "test": "node --test",
-    "check": "node --check server/index.js && node --check server/room-registry.js && node --check server/websocket-peer.js && node --check public/app.js && node --check public/crypto.js"
+    "check": "node --check server/index.js && node --check server/room-registry.js && node --check server/websocket-peer.js && node --check public/app.js && node --check public/install.js && node --check public/crypto.js && node --check public/service-worker.js"
   }
 }
