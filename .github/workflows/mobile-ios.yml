@@ -1,0 +1,63 @@
+name: Mobile iOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - feature/mobile-app-foundation
+    paths:
+      - 'mobile/**'
+      - 'public/**'
+      - '.github/workflows/mobile-ios.yml'
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - 'public/**'
+      - '.github/workflows/mobile-ios.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-simulator:
+    runs-on: macos-15
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm install --no-audit --no-fund
+
+      - name: Verify mobile configuration
+        working-directory: mobile
+        run: npm run verify
+
+      - name: Build iOS Simulator application
+        working-directory: mobile
+        run: npm run build:ios:simulator
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p artifacts
+          ditto -c -k --sequesterRsrc --keepParent \
+            mobile/ios/build/Build/Products/Debug-iphonesimulator/App.app \
+            artifacts/gamleetee-chat-ios-simulator.zip
+          shasum -a 256 artifacts/gamleetee-chat-ios-simulator.zip \
+            > artifacts/gamleetee-chat-ios-simulator.zip.sha256
+
+      - name: Upload iOS Simulator build
+        uses: actions/upload-artifact@v4
+        with:
+          name: gamleetee-chat-ios-simulator
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 14
