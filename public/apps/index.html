@@ -3,49 +3,53 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#111827">
-    <meta name="description" content="Приложения gamleetee Чат для браузера, Android, iPhone и iPad.">
-    <title>Приложения — gamleetee Чат</title>
-    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+    <meta name="theme-color" content="#18171d">
+    <meta name="description" content="Приложения gamchat для браузера, Android, iPhone и iPad.">
+    <title>Приложения — gamchat</title>
+    <link rel="icon" href="/icons/gamchat.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/apps/apps.css">
   </head>
   <body>
+    <div class="glow" aria-hidden="true"></div>
     <main class="apps-shell">
       <header>
-        <a class="back-link" href="/">← Вернуться в чат</a>
-        <div class="brand-mark" aria-hidden="true">g</div>
+        <a class="back-link" href="/">← Вернуться в gamchat</a>
+        <img class="brand-icon" src="/icons/gamchat.svg" alt="Логотип gamchat">
         <p class="eyebrow">gamleetee</p>
         <h1>Приложения</h1>
-        <p class="lead">Один защищённый чат для браузера, Android, iPhone и iPad.</p>
+        <p class="lead">Один спокойный интерфейс для браузера, Android, iPhone и iPad.</p>
       </header>
 
       <section class="platform-grid">
         <article class="platform-card ready">
           <span class="status">Работает</span>
+          <div class="platform-symbol">W</div>
           <h2>Веб-версия</h2>
-          <p>Не требует загрузки. Открывается в современном браузере и поддерживает установку как PWA.</p>
-          <a class="primary-button" href="/">Открыть чат</a>
+          <p>Открывается без регистрации и поддерживает установку как PWA.</p>
+          <a class="primary-button" href="/">Открыть gamchat</a>
         </article>
 
-        <article class="platform-card ready">
+        <article class="platform-card ready featured">
           <span class="status">Версия 0.1.0</span>
+          <div class="platform-symbol">A</div>
           <h2>Android</h2>
-          <p>Официальный APK подписан постоянным сертификатом gamleetee. После загрузки Android может попросить разрешить установку приложений из браузера.</p>
+          <p>Официальный APK подписан постоянным сертификатом gamleetee.</p>
           <a class="primary-button" href="https://github.com/gamleetee/gamleetee-Tunnel-Chat/releases/download/mobile-v0.1.0/gamleetee-chat.apk" rel="noreferrer">Скачать APK</a>
-          <a class="text-link" href="https://github.com/gamleetee/gamleetee-Tunnel-Chat/releases/tag/mobile-v0.1.0" rel="noreferrer">Релиз, подпись и контрольные суммы</a>
+          <a class="text-link" href="https://github.com/gamleetee/gamleetee-Tunnel-Chat/releases/tag/mobile-v0.1.0" rel="noreferrer">Подпись и контрольные суммы</a>
         </article>
 
         <article class="platform-card planned">
           <span class="status">Подготовлено</span>
+          <div class="platform-symbol">i</div>
           <h2>iPhone и iPad</h2>
-          <p>Проект и автоматическая сборка для iOS Simulator готовы. TestFlight станет доступен после подключения Apple Developer.</p>
+          <p>Сборка для iOS Simulator готова. TestFlight появится после подключения Apple Developer.</p>
           <a class="secondary-button" href="https://github.com/gamleetee/gamleetee-Tunnel-Chat/actions/workflows/mobile-ios.yml" rel="noreferrer">Открыть сборки</a>
         </article>
       </section>
 
       <section class="security-note">
-        <h2>Одинаковая защита на всех платформах</h2>
-        <p>Ключ комнаты хранится после символа <code>#</code> в ссылке. Сообщения и файлы шифруются на устройствах участников, а сервер передаёт только зашифрованные данные.</p>
+        <div><p class="eyebrow">Одинаковая защита</p><h2>Содержание переписки не попадает в уведомления</h2></div>
+        <p>Ключ комнаты остаётся после символа <code>#</code>, сообщения и файлы шифруются на устройствах, а приватные уведомления показывают только фразу «Вам пришло сообщение».</p>
       </section>
     </main>
   </body>
