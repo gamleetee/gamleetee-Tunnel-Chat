@@ -26,7 +26,7 @@ The browser encrypts every application message with AES-256-GCM. The room key is
 
 ## Run locally
 
-Requirements: Node.js 20 or newer.
+Requirements: Node.js 22 or newer.
 
 ```bash
 npm install
