@@ -10,7 +10,7 @@ export function randomBase64Url(byteLength) {
 export async function importRoomKey(secret) {
   const keyBytes = base64UrlToBytes(secret);
   if (keyBytes.byteLength !== 32) {
-    throw new Error('The invitation contains an invalid encryption key.');
+    throw new Error('Ссылка-приглашение содержит некорректный ключ шифрования.');
   }
 
   return crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, [
@@ -35,7 +35,7 @@ export async function encryptPayload(key, payload) {
 export async function decryptEnvelope(key, envelopeText) {
   const envelope = JSON.parse(envelopeText);
   if (envelope?.type !== 'encrypted' || envelope.version !== 1) {
-    throw new Error('Unsupported encrypted envelope.');
+    throw new Error('Этот формат зашифрованного сообщения не поддерживается.');
   }
 
   const plaintext = await crypto.subtle.decrypt(
