@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gamchat-v6';
+const CACHE_NAME = 'gamchat-v7';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -6,6 +6,7 @@ const APP_SHELL = [
   '/install.css',
   '/runtime-config.js',
   '/app.js',
+  '/chat-navigation.js',
   '/install.js',
   '/crypto.js',
   '/manifest.webmanifest',
