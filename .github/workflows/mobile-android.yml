@@ -1,0 +1,73 @@
+name: Mobile Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - feature/mobile-app-foundation
+    paths:
+      - 'mobile/**'
+      - 'public/**'
+      - '.github/workflows/mobile-android.yml'
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - 'public/**'
+      - '.github/workflows/mobile-android.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-debug-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm install --no-audit --no-fund
+
+      - name: Verify mobile configuration
+        working-directory: mobile
+        run: npm run verify
+
+      - name: Build debug APK
+        working-directory: mobile
+        run: npm run build:android:debug
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p artifacts
+          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk artifacts/gamleetee-chat-debug.apk
+          sha256sum artifacts/gamleetee-chat-debug.apk > artifacts/gamleetee-chat-debug.apk.sha256
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: gamleetee-chat-android-debug
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 14
