@@ -1,0 +1,12 @@
+services:
+  tunnel-chat:
+    build: .
+    container_name: gamleetee-tunnel-chat
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      ROOM_MAX_PEERS: 2
+      MAX_MESSAGE_BYTES: 262144
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN:-}
+    ports:
+      - "127.0.0.1:3000:3000"
