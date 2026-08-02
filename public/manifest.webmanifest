@@ -1,0 +1,23 @@
+{
+  "name": "gamleetee Tunnel Chat",
+  "short_name": "Tunnel Chat",
+  "description": "Ephemeral end-to-end encrypted chat and file tunnel for two people.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070b14",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
