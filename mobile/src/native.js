@@ -2,6 +2,7 @@ import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Share } from '@capacitor/share';
+import { initializeImmersiveChatNavigation } from './chat-navigation.js';
 
 const SUPPORTED_HOSTS = new Set(['gamchat.ru', 'www.gamchat.ru']);
 const NOTIFICATION_CHANNEL_ID = 'private-messages';
@@ -58,6 +59,9 @@ async function initializeNativeBridge() {
   try {
     const platform = Capacitor.getPlatform();
     document.documentElement.dataset.platform = platform;
+    const versionLabel = document.querySelector('.about-card dl div:first-child dd');
+    if (versionLabel) versionLabel.textContent = '0.2.1';
+    initializeImmersiveChatNavigation();
 
     if (platform === 'android') {
       await LocalNotifications.createChannel({

@@ -7,6 +7,7 @@ const requiredFiles = [
   'capacitor.config.json',
   'vite.config.mjs',
   '../public/icons/gamchat.svg',
+  '../public/chat-navigation.js',
   'src/native.js',
   'scripts/prepare-web.mjs',
   'scripts/configure-android.mjs',
@@ -26,8 +27,13 @@ if (!packageConfig.dependencies['@capacitor/local-notifications']) throw new Err
 if (!packageConfig.devDependencies.sharp) throw new Error('Не подключён генератор нативных размеров иконки.');
 
 const nativeBridge = await readFile(resolve(root, 'src/native.js'), 'utf8');
-for (const requiredText of ['gamchat.ru', 'Вам пришло сообщение', 'LocalNotifications']) {
+for (const requiredText of ['gamchat.ru', 'Вам пришло сообщение', 'LocalNotifications', 'initializeImmersiveChatNavigation']) {
   if (!nativeBridge.includes(requiredText)) throw new Error(`В нативном мосте отсутствует ${requiredText}.`);
+}
+
+const chatNavigation = await readFile(resolve(root, '../public/chat-navigation.js'), 'utf8');
+for (const requiredText of ['chat-room-immersive', 'Вернуться в меню чата', 'exit-home-button']) {
+  if (!chatNavigation.includes(requiredText)) throw new Error(`В навигации чата отсутствует ${requiredText}.`);
 }
 
 const releaseScript = await readFile(resolve(root, 'scripts/configure-android-release.mjs'), 'utf8');
