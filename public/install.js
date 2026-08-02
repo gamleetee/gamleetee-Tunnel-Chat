@@ -1,3 +1,5 @@
+import { initializeImmersiveChatNavigation } from './chat-navigation.js';
+
 const installButton = document.querySelector('#install-app');
 const installStatus = document.querySelector('#install-status');
 
@@ -95,4 +97,5 @@ function configureInstallExperience() {
   }, { capture: true });
 }
 
+initializeImmersiveChatNavigation();
 configureInstallExperience();
