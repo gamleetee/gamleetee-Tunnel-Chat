@@ -6,6 +6,13 @@ const root = process.cwd();
 const manifestPath = resolve(root, 'android/app/src/main/AndroidManifest.xml');
 let manifest = await readFile(manifestPath, 'utf8');
 
+if (!manifest.includes('android.permission.READ_EXTERNAL_STORAGE')) {
+  const storagePermissions = `    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+`;
+  manifest = manifest.replace('    <application', `${storagePermissions}    <application`);
+}
+
 if (!manifest.includes('android:host="gamchat.ru"')) {
   const filters = `
             <intent-filter android:autoVerify="true">
@@ -25,6 +32,9 @@ if (!manifest.includes('android:host="gamchat.ru"')) {
 
 if (!manifest.includes('android:usesCleartextTraffic=')) {
   manifest = manifest.replace('<application', '<application android:usesCleartextTraffic="false"');
+}
+if (!manifest.includes('android:largeHeap=')) {
+  manifest = manifest.replace('<application', '<application android:largeHeap="true"');
 }
 await writeFile(manifestPath, manifest);
 
@@ -82,4 +92,4 @@ await writeFile(
   '<?xml version="1.0" encoding="utf-8"?>\n<resources><color name="gamchat_icon_background">#18171D</color></resources>\n'
 );
 
-console.log('Configured Android App Links and the purple GCH launcher icon.');
+console.log('Configured Android App Links, file storage and the purple GCH launcher icon.');
