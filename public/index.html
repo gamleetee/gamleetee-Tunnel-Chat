@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111827">
+    <meta name="description" content="An ephemeral encrypted chat and file tunnel for two people.">
+    <title>gamleetee Tunnel Chat</title>
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/styles.css">
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section id="landing" class="panel landing">
+        <div class="brand-mark" aria-hidden="true">g</div>
+        <p class="eyebrow">gamleetee</p>
+        <h1>Private tunnel chat for two</h1>
+        <p class="lead">
+          Create a one-time room, send its link to one person, and exchange encrypted messages and files.
+          No accounts, database, history, or server-side file storage.
+        </p>
+        <button id="create-room" class="primary-button" type="button">Create private room</button>
+        <button id="install-app" class="secondary-button" type="button" hidden>Install application</button>
+        <p id="fatal-error" class="fatal-error" hidden></p>
+        <div class="privacy-grid">
+          <article><strong>2 people</strong><span>A third participant cannot enter.</span></article>
+          <article><strong>End-to-end encrypted</strong><span>The key stays after # in the invitation URL.</span></article>
+          <article><strong>Memory only</strong><span>Rooms disappear when both participants leave.</span></article>
+        </div>
+        <a class="source-link" href="https://github.com/gamleetee/gamleetee-Tunnel-Chat" rel="noreferrer">Open source on GitHub</a>
+      </section>
+
+      <section id="chat" class="chat-layout" hidden>
+        <header class="chat-header panel">
+          <div>
+            <p class="eyebrow">Room <span id="room-code"></span></p>
+            <h1>gamleetee Tunnel Chat</h1>
+          </div>
+          <div id="connection-status" class="status" data-state="connecting">Connecting…</div>
+        </header>
+
+        <aside class="invite-panel panel">
+          <h2>Invite one person</h2>
+          <p>The part after <code>#</code> contains the encryption key and is never sent in an HTTP request.</p>
+          <div class="invite-row">
+            <input id="invite-link" type="text" readonly aria-label="Invitation link">
+            <button id="copy-invite" class="secondary-button" type="button">Copy</button>
+          </div>
+          <button id="leave-room" class="text-button" type="button">Leave and forget room</button>
+        </aside>
+
+        <section class="conversation panel">
+          <div id="messages" class="messages" aria-live="polite">
+            <p class="system-message">This device does not save message history.</p>
+          </div>
+          <form id="composer" class="composer">
+            <button id="choose-file" class="icon-button" type="button" aria-label="Choose file" disabled>＋</button>
+            <input id="file-input" type="file" hidden>
+            <textarea id="message-input" rows="1" maxlength="5000" placeholder="Waiting for the second participant…" disabled></textarea>
+            <button id="send-message" class="primary-button send-button" type="submit" disabled>Send</button>
+          </form>
+        </section>
+
+        <aside class="transfer-panel panel">
+          <div class="section-heading">
+            <h2>Files</h2>
+            <span>Up to 100 MB</span>
+          </div>
+          <div id="transfers" class="transfers">
+            <p class="muted">Transferred files appear here and remain only in the participants’ browsers.</p>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>
