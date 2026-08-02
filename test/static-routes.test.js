@@ -4,6 +4,8 @@ import test from 'node:test';
 
 const PORT = 43_000 + (process.pid % 1_000);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
+const ANDROID_DOWNLOAD_URL = 'https://github.com/gamleetee/gamleetee-Tunnel-Chat/releases/download/mobile-v0.1.0/gamleetee-chat.apk';
+const ANDROID_CERTIFICATE = '57:58:6C:A8:AB:1A:79:57:DE:01:20:6C:21:42:A5:E6:84:B1:D9:76:0C:17:45:7B:89:92:04:C4:7A:65:B7:CD';
 
 test('static directories serve their index.html file', { timeout: 15_000 }, async (context) => {
   const output = [];
@@ -35,13 +37,27 @@ test('static directories serve their index.html file', { timeout: 15_000 }, asyn
   const response = await fetch(`${BASE_URL}/apps/`);
   assert.equal(response.status, 200);
   assert.match(response.headers.get('content-type') ?? '', /^text\/html/);
-  assert.match(await response.text(), /<h1>Приложения<\/h1>/);
+
+  const appsHtml = await response.text();
+  assert.match(appsHtml, /<h1>Приложения<\/h1>/);
+  assert.ok(appsHtml.includes(ANDROID_DOWNLOAD_URL));
+  assert.match(appsHtml, />Скачать APK<\/a>/);
 
   const headResponse = await fetch(`${BASE_URL}/apps/`, { method: 'HEAD' });
   assert.equal(headResponse.status, 200);
   assert.match(headResponse.headers.get('content-type') ?? '', /^text\/html/);
   assert.ok(Number(headResponse.headers.get('content-length')) > 0);
   assert.equal(await headResponse.text(), '');
+
+  const assetLinksResponse = await fetch(`${BASE_URL}/.well-known/assetlinks.json`);
+  assert.equal(assetLinksResponse.status, 200);
+  assert.match(assetLinksResponse.headers.get('content-type') ?? '', /^application\/json/);
+
+  const assetLinks = await assetLinksResponse.json();
+  assert.equal(assetLinks.length, 1);
+  assert.equal(assetLinks[0].target.namespace, 'android_app');
+  assert.equal(assetLinks[0].target.package_name, 'ru.gamleetee.gamchat');
+  assert.deepEqual(assetLinks[0].target.sha256_cert_fingerprints, [ANDROID_CERTIFICATE]);
 });
 
 async function waitForServer(server, output) {
