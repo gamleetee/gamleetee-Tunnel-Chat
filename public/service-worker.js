@@ -1,13 +1,17 @@
-const CACHE_NAME = 'gamleetee-tunnel-chat-v3';
+const CACHE_NAME = 'gamleetee-tunnel-chat-v4';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/styles.css',
   '/install.css',
+  '/runtime-config.js',
   '/app.js',
   '/install.js',
   '/crypto.js',
   '/manifest.webmanifest',
+  '/apps/',
+  '/apps/index.html',
+  '/apps/apps.css',
   '/icons/icon.svg',
   '/icons/icon-maskable.svg'
 ];
