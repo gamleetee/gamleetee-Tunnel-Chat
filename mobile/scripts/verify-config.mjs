@@ -23,12 +23,36 @@ if (capacitorConfig.appName !== 'gamchat') throw new Error('Некорректн
 if (capacitorConfig.webDir !== 'www') throw new Error('Некорректный каталог мобильной веб-сборки.');
 
 const packageConfig = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
-if (!packageConfig.dependencies['@capacitor/local-notifications']) throw new Error('Не подключён модуль приватных уведомлений.');
+for (const dependency of ['@capacitor/browser', '@capacitor/filesystem', '@capacitor/local-notifications']) {
+  if (!packageConfig.dependencies[dependency]) throw new Error(`Не подключён мобильный модуль ${dependency}.`);
+}
+if (packageConfig.version !== '0.2.2') throw new Error('Некорректная версия мобильного приложения.');
 if (!packageConfig.devDependencies.sharp) throw new Error('Не подключён генератор нативных размеров иконки.');
 
 const nativeBridge = await readFile(resolve(root, 'src/native.js'), 'utf8');
-for (const requiredText of ['gamchat.ru', 'Вам пришло сообщение', 'LocalNotifications', 'initializeImmersiveChatNavigation']) {
+for (const requiredText of [
+  'gamchat.ru',
+  'Вам пришло сообщение',
+  'LocalNotifications',
+  'initializeImmersiveChatNavigation',
+  'Filesystem.writeFile',
+  'Filesystem.appendFile',
+  'Directory.Documents',
+  'https://gamchat.ru/apps/',
+  'Browser.open',
+  '0.2.2'
+]) {
   if (!nativeBridge.includes(requiredText)) throw new Error(`В нативном мосте отсутствует ${requiredText}.`);
+}
+
+const androidConfig = await readFile(resolve(root, 'scripts/configure-android.mjs'), 'utf8');
+for (const requiredText of ['READ_EXTERNAL_STORAGE', 'WRITE_EXTERNAL_STORAGE', 'android:largeHeap']) {
+  if (!androidConfig.includes(requiredText)) throw new Error(`В Android-конфигурации отсутствует ${requiredText}.`);
+}
+
+const iosConfig = await readFile(resolve(root, 'scripts/configure-ios.mjs'), 'utf8');
+for (const requiredText of ['PrivacyInfo.xcprivacy', 'NSPrivacyAccessedAPICategoryFileTimestamp', 'UIFileSharingEnabled']) {
+  if (!iosConfig.includes(requiredText)) throw new Error(`В iOS-конфигурации отсутствует ${requiredText}.`);
 }
 
 const chatNavigation = await readFile(resolve(root, '../public/chat-navigation.js'), 'utf8');
