@@ -7,7 +7,7 @@ const BASE_URL = `http://127.0.0.1:${PORT}`;
 const ANDROID_DOWNLOAD_URL = 'https://github.com/gamleetee/gamleetee-Tunnel-Chat/releases/download/mobile-v0.1.0/gamleetee-chat.apk';
 const ANDROID_CERTIFICATE = '57:58:6C:A8:AB:1A:79:57:DE:01:20:6C:21:42:A5:E6:84:B1:D9:76:0C:17:45:7B:89:92:04:C4:7A:65:B7:CD';
 
-test('static directories serve their index.html file', { timeout: 15_000 }, async (context) => {
+test('purple navigation shell and static application routes are available', { timeout: 15_000 }, async (context) => {
   const output = [];
   const server = spawn(process.execPath, ['server/index.js'], {
     cwd: process.cwd(),
@@ -34,6 +34,21 @@ test('static directories serve their index.html file', { timeout: 15_000 }, asyn
 
   await waitForServer(server, output);
 
+  const homeResponse = await fetch(`${BASE_URL}/`);
+  assert.equal(homeResponse.status, 200);
+  const homeHtml = await homeResponse.text();
+  for (const tab of ['home', 'chat', 'settings']) {
+    assert.match(homeHtml, new RegExp(`data-tab="${tab}"`));
+  }
+  assert.match(homeHtml, /Приватные уведомления/);
+  assert.match(homeHtml, /Вам пришло сообщение/);
+  assert.match(homeHtml, /\/icons\/gamchat\.svg/);
+
+  const iconResponse = await fetch(`${BASE_URL}/icons/gamchat.svg`);
+  assert.equal(iconResponse.status, 200);
+  assert.match(iconResponse.headers.get('content-type') ?? '', /^image\/svg\+xml/);
+  assert.ok((await iconResponse.text()).includes('data:image/webp;base64,'));
+
   const response = await fetch(`${BASE_URL}/apps/`);
   assert.equal(response.status, 200);
   assert.match(response.headers.get('content-type') ?? '', /^text\/html/);
@@ -42,6 +57,7 @@ test('static directories serve their index.html file', { timeout: 15_000 }, asyn
   assert.match(appsHtml, /<h1>Приложения<\/h1>/);
   assert.ok(appsHtml.includes(ANDROID_DOWNLOAD_URL));
   assert.match(appsHtml, />Скачать APK<\/a>/);
+  assert.match(appsHtml, /Вам пришло сообщение/);
 
   const headResponse = await fetch(`${BASE_URL}/apps/`, { method: 'HEAD' });
   assert.equal(headResponse.status, 200);
