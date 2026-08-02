@@ -2,16 +2,17 @@
 <html lang="ru">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#111827">
-    <meta name="application-name" content="gamleetee Защищённый чат">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#18171d">
+    <meta name="application-name" content="gamchat">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="gamleetee Чат">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="gamchat">
     <meta name="description" content="Временный зашифрованный чат и файловый туннель для двух участников.">
-    <title>gamleetee Защищённый чат</title>
+    <title>gamchat — защищённый чат</title>
     <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+    <link rel="icon" href="/icons/gamchat.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icons/gamchat.svg">
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/install.css">
     <script src="/runtime-config.js"></script>
@@ -19,71 +20,182 @@
     <script type="module" src="/app.js"></script>
   </head>
   <body>
-    <main class="shell">
-      <section id="landing" class="panel landing">
-        <div class="brand-mark" aria-hidden="true">g</div>
-        <p class="eyebrow">gamleetee</p>
-        <h1>Приватный чат-туннель для двоих</h1>
-        <p class="lead">
-          Создайте одноразовую комнату, отправьте ссылку одному человеку и обменивайтесь зашифрованными сообщениями и файлами.
-          Без аккаунтов, базы данных, истории и хранения файлов на сервере.
-        </p>
-        <button id="create-room" class="primary-button" type="button">Создать приватную комнату</button>
-        <button id="install-app" class="secondary-button" type="button" hidden>Установить приложение</button>
-        <p id="install-status" class="install-status" hidden aria-live="polite"></p>
-        <p id="fatal-error" class="fatal-error" hidden></p>
-        <div class="privacy-grid">
-          <article><strong>Только 2 участника</strong><span>Третий участник не сможет войти.</span></article>
-          <article><strong>Сквозное шифрование</strong><span>Ключ остаётся после символа # в ссылке-приглашении.</span></article>
-          <article><strong>Только в памяти</strong><span>Комната исчезает, когда оба участника выходят.</span></article>
-        </div>
-        <div class="landing-links">
-          <a class="source-link" href="/apps/">Приложения для Android и iOS</a>
-          <a class="source-link" href="https://github.com/gamleetee/gamleetee-Tunnel-Chat" rel="noreferrer">Исходный код на GitHub</a>
-        </div>
-      </section>
+    <div class="ambient-glow ambient-glow-one" aria-hidden="true"></div>
+    <div class="ambient-glow ambient-glow-two" aria-hidden="true"></div>
 
-      <section id="chat" class="chat-layout" hidden>
-        <header class="chat-header panel">
+    <main class="app-shell">
+      <section id="home-screen" class="screen is-active" data-screen="home" aria-labelledby="home-title">
+        <header class="brand-header">
+          <img class="brand-icon" src="/icons/gamchat.svg" alt="Логотип gamchat">
           <div>
-            <p class="eyebrow">Комната <span id="room-code"></span></p>
-            <h1>gamleetee Защищённый чат</h1>
+            <p class="eyebrow">gamleetee</p>
+            <h1 id="home-title">gamchat</h1>
+            <p class="brand-subtitle">Приватный чат для двоих без хранения истории</p>
           </div>
-          <div id="connection-status" class="status" data-state="connecting">Подключение…</div>
         </header>
 
-        <aside class="invite-panel panel">
-          <h2>Пригласите одного человека</h2>
-          <p>Часть после символа <code>#</code> содержит ключ шифрования и никогда не отправляется в HTTP-запросе.</p>
-          <div class="invite-row">
-            <input id="invite-link" type="text" readonly aria-label="Ссылка-приглашение">
-            <button id="copy-invite" class="secondary-button" type="button">Копировать</button>
-          </div>
-          <button id="leave-room" class="text-button" type="button">Выйти и забыть комнату</button>
-        </aside>
-
-        <section class="conversation panel">
-          <div id="messages" class="messages" aria-live="polite">
-            <p class="system-message">Это устройство не сохраняет историю сообщений.</p>
-          </div>
-          <form id="composer" class="composer">
-            <button id="choose-file" class="icon-button" type="button" aria-label="Выбрать файл" disabled>＋</button>
-            <input id="file-input" type="file" hidden>
-            <textarea id="message-input" rows="1" maxlength="5000" placeholder="Ожидание второго участника…" disabled></textarea>
-            <button id="send-message" class="primary-button send-button" type="submit" disabled>Отправить</button>
-          </form>
+        <section class="service-strip panel" aria-label="Состояние сервиса">
+          <span class="service-dot" aria-hidden="true"></span>
+          <div><strong>Сервис доступен</strong><span>Шифрование выполняется на устройствах участников</span></div>
         </section>
 
-        <aside class="transfer-panel panel">
-          <div class="section-heading">
-            <h2>Файлы</h2>
-            <span>До 100 МБ</span>
+        <div class="home-grid">
+          <section class="action-card panel action-card-primary">
+            <span class="card-icon" aria-hidden="true">＋</span>
+            <div>
+              <p class="eyebrow">Новая беседа</p>
+              <h2>Создать комнату</h2>
+              <p>Получите приватную ссылку и отправьте её одному человеку.</p>
+            </div>
+            <button id="create-room" class="primary-button" type="button">Создать комнату</button>
+          </section>
+
+          <section class="action-card panel">
+            <span class="card-icon" aria-hidden="true">↗</span>
+            <div>
+              <p class="eyebrow">Есть приглашение</p>
+              <h2>Подключиться по ссылке</h2>
+              <p>Вставьте полную ссылку, включая секретную часть после символа <code>#</code>.</p>
+            </div>
+            <label class="field-label" for="join-link">Ссылка-приглашение</label>
+            <div class="join-row">
+              <input id="join-link" type="url" inputmode="url" autocomplete="off" placeholder="https://gamchat.ru/?room=…#…">
+              <button id="paste-link" class="icon-action" type="button" aria-label="Вставить ссылку из буфера">⌘</button>
+            </div>
+            <button id="join-room" class="secondary-button" type="button">Подключиться</button>
+            <p id="join-error" class="inline-error" hidden aria-live="polite"></p>
+          </section>
+        </div>
+
+        <section id="active-room-card" class="active-room-card panel" hidden>
+          <div>
+            <p class="eyebrow">Активная комната</p>
+            <h2>Комната <span id="home-room-code"></span></h2>
+            <p id="home-room-status">Подключение…</p>
           </div>
-          <div id="transfers" class="transfers">
-            <p class="muted">Переданные файлы появятся здесь и останутся только в браузерах участников.</p>
+          <button id="open-chat" class="primary-button compact-button" type="button">Открыть чат</button>
+        </section>
+
+        <section class="steps panel">
+          <div class="section-title"><div><p class="eyebrow">Три шага</p><h2>Как начать</h2></div></div>
+          <ol>
+            <li><span>1</span><div><strong>Создайте комнату</strong><p>Ссылка и ключ появятся только на вашем устройстве.</p></div></li>
+            <li><span>2</span><div><strong>Отправьте приглашение</strong><p>В комнату сможет войти только один собеседник.</p></div></li>
+            <li><span>3</span><div><strong>Общайтесь</strong><p>Сообщения и файлы не сохраняются на сервере.</p></div></li>
+          </ol>
+        </section>
+
+        <div class="install-row">
+          <button id="install-app" class="secondary-button" type="button" hidden>Установить приложение</button>
+          <a class="text-link" href="/apps/">Все приложения</a>
+        </div>
+        <p id="install-status" class="install-status" hidden aria-live="polite"></p>
+        <p id="fatal-error" class="fatal-error" hidden></p>
+      </section>
+
+      <section id="chat-screen" class="screen" data-screen="chat" aria-labelledby="chat-title">
+        <header class="chat-topbar panel">
+          <button id="chat-back" class="topbar-button" type="button" aria-label="Вернуться на главную">←</button>
+          <div class="chat-heading">
+            <h1 id="chat-title">Чат</h1>
+            <div id="connection-status" class="connection-status" data-state="idle">Нет активной комнаты</div>
           </div>
-        </aside>
+          <button id="leave-room" class="topbar-button danger-button" type="button" aria-label="Выйти из комнаты" disabled>↪</button>
+        </header>
+
+        <section id="chat-empty" class="chat-empty panel">
+          <div class="empty-symbol" aria-hidden="true">◇</div>
+          <h2>Нет активной комнаты</h2>
+          <p>Создайте новую комнату или подключитесь по ссылке на главной странице.</p>
+          <button id="empty-go-home" class="primary-button" type="button">Перейти на главную</button>
+        </section>
+
+        <section id="chat-room" class="chat-room panel" hidden>
+          <div class="room-info-bar">
+            <div><span>Комната</span><strong id="room-code"></strong></div>
+            <button id="toggle-invite" class="ghost-button" type="button">Пригласить</button>
+          </div>
+
+          <section id="invite-sheet" class="invite-sheet" hidden>
+            <p>Секрет после <code>#</code> не отправляется серверу.</p>
+            <input id="invite-link" type="text" readonly aria-label="Ссылка-приглашение">
+            <div class="invite-actions">
+              <button id="copy-invite" class="secondary-button" type="button">Копировать</button>
+              <button id="share-invite" class="primary-button" type="button">Поделиться</button>
+            </div>
+          </section>
+
+          <div id="messages" class="messages" aria-live="polite">
+            <p class="system-message">История существует только на устройствах участников и исчезнет после выхода.</p>
+          </div>
+
+          <section id="transfer-summary" class="transfer-summary" hidden>
+            <div><strong id="transfer-summary-name">Файл</strong><span id="transfer-summary-status">Подготовка…</span></div>
+            <progress id="transfer-summary-progress" max="100" value="0"></progress>
+          </section>
+
+          <form id="composer" class="composer">
+            <button id="choose-file" class="attach-button" type="button" aria-label="Добавить файл" disabled>＋</button>
+            <textarea id="message-input" rows="1" maxlength="5000" placeholder="Ожидание второго участника…" disabled></textarea>
+            <button id="send-message" class="send-button" type="submit" aria-label="Отправить сообщение" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.4 20.2 21 12 3.4 3.8l.1 6.4L16 12 3.5 13.8l-.1 6.4Z"/></svg>
+            </button>
+            <input id="file-input" type="file" hidden>
+          </form>
+        </section>
+      </section>
+
+      <section id="settings-screen" class="screen" data-screen="settings" aria-labelledby="settings-title">
+        <header class="page-header">
+          <p class="eyebrow">Управление</p>
+          <h1 id="settings-title">Настройки</h1>
+          <p>Минимум данных, максимум контроля на вашем устройстве.</p>
+        </header>
+
+        <section class="settings-group panel">
+          <div class="setting-row">
+            <div><strong>Приватные уведомления</strong><span>Показывать только «Вам пришло сообщение», без текста переписки.</span></div>
+            <label class="switch"><input id="notification-toggle" type="checkbox"><span aria-hidden="true"></span></label>
+          </div>
+          <p id="notification-note" class="setting-note">Уведомления работают, пока защищённая комната остаётся подключённой.</p>
+        </section>
+
+        <section class="settings-group panel">
+          <div class="section-title"><div><p class="eyebrow">Безопасность</p><h2>Как защищаются данные</h2></div></div>
+          <ul class="security-list">
+            <li><span>◇</span><div><strong>Ключ остаётся в ссылке</strong><p>Секретная часть после <code>#</code> не попадает в HTTP-запрос.</p></div></li>
+            <li><span>◇</span><div><strong>Комната временная</strong><p>Она удаляется из памяти сервера после выхода обоих участников.</p></div></li>
+            <li><span>◇</span><div><strong>Без аккаунта</strong><p>Для общения не требуются имя, телефон или электронная почта.</p></div></li>
+          </ul>
+        </section>
+
+        <section class="settings-group panel about-card">
+          <img src="/icons/gamchat.svg" alt="Логотип gamchat">
+          <div><p class="eyebrow">О приложении</p><h2>gamchat</h2><p>Защищённый чат и файловый туннель от gamleetee.</p></div>
+          <dl><div><dt>Версия</dt><dd>0.2.0</dd></div><div><dt>Платформа</dt><dd id="platform-name">Веб</dd></div></dl>
+          <div class="about-links"><a href="/apps/">Приложения</a><a href="https://github.com/gamleetee/gamleetee-Tunnel-Chat" rel="noreferrer">GitHub</a></div>
+        </section>
       </section>
     </main>
+
+    <nav class="bottom-nav" aria-label="Основная навигация">
+      <button class="nav-item is-active" type="button" data-tab="home" aria-current="page">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z"/></svg><span>Главная</span>
+      </button>
+      <button class="nav-item" type="button" data-tab="chat">
+        <span id="chat-badge" class="nav-badge" hidden></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"/></svg><span>Чат</span>
+      </button>
+      <button class="nav-item" type="button" data-tab="settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8.2 3.5-2.1-1.2.1-2.4-2.3-1.3-2 1.3L12 6.7 10.1 8 8 6.7 5.8 8l.1 2.4L3.8 12l2.1 1.6L5.8 16 8 17.3l2.1-1.3 1.9 1.3 1.9-1.3 2 1.3 2.3-1.3-.1-2.4 2.1-1.6Z"/></svg><span>Настройки</span>
+      </button>
+    </nav>
+
+    <div id="attachment-backdrop" class="sheet-backdrop" hidden></div>
+    <section id="attachment-sheet" class="bottom-sheet" hidden aria-modal="true" role="dialog" aria-labelledby="attachment-title">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-title-row"><div><p class="eyebrow">Вложения</p><h2 id="attachment-title">Файлы</h2></div><button id="close-attachment" class="topbar-button" type="button" aria-label="Закрыть">×</button></div>
+      <button id="upload-file" class="file-action" type="button"><span>＋</span><div><strong>Загрузить файл</strong><small>До 100 МБ, без сохранения на сервере</small></div></button>
+      <div id="transfers" class="transfers"><p class="muted">Текущие передачи появятся здесь.</p></div>
+    </section>
   </body>
 </html>
