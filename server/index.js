@@ -234,8 +234,13 @@ async function serveStatic(pathname, headOnly, response) {
   let fileStats;
   try {
     fileStats = await stat(filePath);
+
+    if (fileStats.isDirectory()) {
+      filePath = join(filePath, 'index.html');
+      fileStats = await stat(filePath);
+    }
   } catch {
-    if (!extname(normalizedPath)) {
+    if (!extname(normalizedPath) && !normalizedPath.endsWith('/')) {
       filePath = join(ROOT, 'index.html');
       fileStats = await stat(filePath);
     } else {
