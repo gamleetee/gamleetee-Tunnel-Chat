@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#111827">
-    <meta name="description" content="An ephemeral encrypted chat and file tunnel for two people.">
-    <title>gamleetee Tunnel Chat</title>
+    <meta name="description" content="Временный зашифрованный чат и файловый туннель для двух участников.">
+    <title>gamleetee Защищённый чат</title>
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/styles.css">
@@ -16,60 +16,60 @@
       <section id="landing" class="panel landing">
         <div class="brand-mark" aria-hidden="true">g</div>
         <p class="eyebrow">gamleetee</p>
-        <h1>Private tunnel chat for two</h1>
+        <h1>Приватный чат-туннель для двоих</h1>
         <p class="lead">
-          Create a one-time room, send its link to one person, and exchange encrypted messages and files.
-          No accounts, database, history, or server-side file storage.
+          Создайте одноразовую комнату, отправьте ссылку одному человеку и обменивайтесь зашифрованными сообщениями и файлами.
+          Без аккаунтов, базы данных, истории и хранения файлов на сервере.
         </p>
-        <button id="create-room" class="primary-button" type="button">Create private room</button>
-        <button id="install-app" class="secondary-button" type="button" hidden>Install application</button>
+        <button id="create-room" class="primary-button" type="button">Создать приватную комнату</button>
+        <button id="install-app" class="secondary-button" type="button" hidden>Установить приложение</button>
         <p id="fatal-error" class="fatal-error" hidden></p>
         <div class="privacy-grid">
-          <article><strong>2 people</strong><span>A third participant cannot enter.</span></article>
-          <article><strong>End-to-end encrypted</strong><span>The key stays after # in the invitation URL.</span></article>
-          <article><strong>Memory only</strong><span>Rooms disappear when both participants leave.</span></article>
+          <article><strong>Только 2 участника</strong><span>Третий участник не сможет войти.</span></article>
+          <article><strong>Сквозное шифрование</strong><span>Ключ остаётся после символа # в ссылке-приглашении.</span></article>
+          <article><strong>Только в памяти</strong><span>Комната исчезает, когда оба участника выходят.</span></article>
         </div>
-        <a class="source-link" href="https://github.com/gamleetee/gamleetee-Tunnel-Chat" rel="noreferrer">Open source on GitHub</a>
+        <a class="source-link" href="https://github.com/gamleetee/gamleetee-Tunnel-Chat" rel="noreferrer">Исходный код на GitHub</a>
       </section>
 
       <section id="chat" class="chat-layout" hidden>
         <header class="chat-header panel">
           <div>
-            <p class="eyebrow">Room <span id="room-code"></span></p>
-            <h1>gamleetee Tunnel Chat</h1>
+            <p class="eyebrow">Комната <span id="room-code"></span></p>
+            <h1>gamleetee Защищённый чат</h1>
           </div>
-          <div id="connection-status" class="status" data-state="connecting">Connecting…</div>
+          <div id="connection-status" class="status" data-state="connecting">Подключение…</div>
         </header>
 
         <aside class="invite-panel panel">
-          <h2>Invite one person</h2>
-          <p>The part after <code>#</code> contains the encryption key and is never sent in an HTTP request.</p>
+          <h2>Пригласите одного человека</h2>
+          <p>Часть после символа <code>#</code> содержит ключ шифрования и никогда не отправляется в HTTP-запросе.</p>
           <div class="invite-row">
-            <input id="invite-link" type="text" readonly aria-label="Invitation link">
-            <button id="copy-invite" class="secondary-button" type="button">Copy</button>
+            <input id="invite-link" type="text" readonly aria-label="Ссылка-приглашение">
+            <button id="copy-invite" class="secondary-button" type="button">Копировать</button>
           </div>
-          <button id="leave-room" class="text-button" type="button">Leave and forget room</button>
+          <button id="leave-room" class="text-button" type="button">Выйти и забыть комнату</button>
         </aside>
 
         <section class="conversation panel">
           <div id="messages" class="messages" aria-live="polite">
-            <p class="system-message">This device does not save message history.</p>
+            <p class="system-message">Это устройство не сохраняет историю сообщений.</p>
           </div>
           <form id="composer" class="composer">
-            <button id="choose-file" class="icon-button" type="button" aria-label="Choose file" disabled>＋</button>
+            <button id="choose-file" class="icon-button" type="button" aria-label="Выбрать файл" disabled>＋</button>
             <input id="file-input" type="file" hidden>
-            <textarea id="message-input" rows="1" maxlength="5000" placeholder="Waiting for the second participant…" disabled></textarea>
-            <button id="send-message" class="primary-button send-button" type="submit" disabled>Send</button>
+            <textarea id="message-input" rows="1" maxlength="5000" placeholder="Ожидание второго участника…" disabled></textarea>
+            <button id="send-message" class="primary-button send-button" type="submit" disabled>Отправить</button>
           </form>
         </section>
 
         <aside class="transfer-panel panel">
           <div class="section-heading">
-            <h2>Files</h2>
-            <span>Up to 100 MB</span>
+            <h2>Файлы</h2>
+            <span>До 100 МБ</span>
           </div>
           <div id="transfers" class="transfers">
-            <p class="muted">Transferred files appear here and remain only in the participants’ browsers.</p>
+            <p class="muted">Переданные файлы появятся здесь и останутся только в браузерах участников.</p>
           </div>
         </aside>
       </section>
