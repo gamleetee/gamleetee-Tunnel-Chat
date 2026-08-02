@@ -4,11 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#111827">
+    <meta name="application-name" content="gamleetee Защищённый чат">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="gamleetee Чат">
     <meta name="description" content="Временный зашифрованный чат и файловый туннель для двух участников.">
     <title>gamleetee Защищённый чат</title>
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/install.css">
+    <script type="module" src="/install.js"></script>
     <script type="module" src="/app.js"></script>
   </head>
   <body>
@@ -23,6 +29,7 @@
         </p>
         <button id="create-room" class="primary-button" type="button">Создать приватную комнату</button>
         <button id="install-app" class="secondary-button" type="button" hidden>Установить приложение</button>
+        <p id="install-status" class="install-status" hidden aria-live="polite"></p>
         <p id="fatal-error" class="fatal-error" hidden></p>
         <div class="privacy-grid">
           <article><strong>Только 2 участника</strong><span>Третий участник не сможет войти.</span></article>
