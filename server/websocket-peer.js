@@ -16,6 +16,7 @@ export class WebSocketPeer extends EventEmitter {
     this.fragmentLength = 0;
     this.fragments = [];
     this.isAlive = true;
+    this.on('error', () => {});
 
     socket.setNoDelay(true);
     socket.on('data', (chunk) => this.#handleData(chunk));
