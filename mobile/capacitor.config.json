@@ -1,7 +1,8 @@
 {
   "appId": "ru.gamleetee.gamchat",
-  "appName": "gamleetee Чат",
+  "appName": "gamchat",
   "webDir": "www",
+  "backgroundColor": "#18171d",
   "server": {
     "androidScheme": "https",
     "iosScheme": "https"
@@ -9,6 +10,10 @@
   "plugins": {
     "App": {
       "disableBackButtonHandler": false
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_launcher_foreground",
+      "iconColor": "#A855F7"
     }
   }
 }

@@ -1,26 +1,26 @@
 {
   "id": "/",
-  "name": "gamleetee Защищённый чат",
-  "short_name": "gamleetee Чат",
+  "name": "gamchat",
+  "short_name": "gamchat",
   "description": "Временный чат и файловый туннель со сквозным шифрованием для двух участников.",
   "lang": "ru-RU",
   "dir": "ltr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#070b14",
-  "theme_color": "#111827",
+  "background_color": "#111015",
+  "theme_color": "#18171d",
   "prefer_related_applications": false,
   "categories": ["communication", "utilities"],
   "icons": [
     {
-      "src": "/icons/icon.svg",
+      "src": "/icons/gamchat.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-maskable.svg",
+      "src": "/icons/gamchat.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"
