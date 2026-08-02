@@ -18,6 +18,19 @@ for (const file of ['app.js', 'crypto.js', 'styles.css']) {
 await cp(resolve(publicRoot, 'icons'), resolve(generatedRoot, 'icons'), { recursive: true });
 await copyFile(resolve(mobileRoot, 'src/native.js'), resolve(generatedRoot, 'native.js'));
 
+const nativeRuntime = `<script>
+window.GAMLEETEE_CONFIG = Object.freeze({
+  apiBaseUrl: 'https://gamchat.ru',
+  canonicalWebUrl: 'https://gamchat.ru',
+  native: true
+});
+let resolveNativeReady;
+window.GAMLEETEE_NATIVE_READY = new Promise((resolve) => {
+  resolveNativeReady = resolve;
+});
+window.GAMLEETEE_RESOLVE_NATIVE_READY = resolveNativeReady;
+</script>`;
+
 let html = await readFile(resolve(publicRoot, 'index.html'), 'utf8');
 html = html
   .replace(/^\s*<link rel="manifest"[^>]*>\s*$/gmu, '')
@@ -25,6 +38,7 @@ html = html
   .replace(/^\s*<script type="module" src="\/install\.js"><\/script>\s*$/gmu, '')
   .replace(/^\s*<button id="install-app"[\s\S]*?<\/button>\s*$/gmu, '')
   .replace(/^\s*<p id="install-status"[\s\S]*?<\/p>\s*$/gmu, '')
+  .replace('<script src="/runtime-config.js"></script>', nativeRuntime)
   .replace(
     '<script type="module" src="/app.js"></script>',
     '<script type="module" src="/native.js"></script>\n    <script type="module" src="/app.js"></script>'
@@ -35,11 +49,6 @@ html = html
   );
 
 await writeFile(resolve(generatedRoot, 'index.html'), html);
-
-await writeFile(
-  resolve(generatedRoot, 'runtime-config.js'),
-  `window.GAMLEETEE_CONFIG = Object.freeze({\n  apiBaseUrl: 'https://gamchat.ru',\n  canonicalWebUrl: 'https://gamchat.ru',\n  native: true\n});\n\nlet resolveNativeReady;\nwindow.GAMLEETEE_NATIVE_READY = new Promise((resolve) => {\n  resolveNativeReady = resolve;\n});\nwindow.GAMLEETEE_RESOLVE_NATIVE_READY = resolveNativeReady;\n`
-);
 
 const stylesPath = resolve(generatedRoot, 'styles.css');
 const styles = await readFile(stylesPath, 'utf8');
