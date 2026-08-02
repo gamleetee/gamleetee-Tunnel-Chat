@@ -11,7 +11,7 @@ await rm(generatedRoot, { recursive: true, force: true });
 await rm(outputRoot, { recursive: true, force: true });
 await mkdir(generatedRoot, { recursive: true });
 
-for (const file of ['app.js', 'crypto.js', 'styles.css']) {
+for (const file of ['app.js', 'chat-navigation.js', 'crypto.js', 'styles.css']) {
   await copyFile(resolve(publicRoot, file), resolve(generatedRoot, file));
 }
 
