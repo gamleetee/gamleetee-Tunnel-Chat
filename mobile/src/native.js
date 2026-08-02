@@ -59,6 +59,8 @@ async function initializeNativeBridge() {
   try {
     const platform = Capacitor.getPlatform();
     document.documentElement.dataset.platform = platform;
+    const versionLabel = document.querySelector('.about-card dl div:first-child dd');
+    if (versionLabel) versionLabel.textContent = '0.2.1';
     initializeImmersiveChatNavigation();
 
     if (platform === 'android') {
