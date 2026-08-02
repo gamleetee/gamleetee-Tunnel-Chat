@@ -3,3 +3,13 @@ node_modules/
 npm-debug.log*
 .DS_Store
 coverage/
+
+mobile/node_modules/
+mobile/generated/
+mobile/www/
+mobile/android/
+mobile/ios/
+mobile/*.keystore
+mobile/*.jks
+mobile/*.p12
+mobile/*.mobileprovision

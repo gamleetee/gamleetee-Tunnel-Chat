@@ -1,0 +1,14 @@
+{
+  "appId": "ru.gamleetee.gamchat",
+  "appName": "gamleetee Чат",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "plugins": {
+    "App": {
+      "disableBackButtonHandler": false
+    }
+  }
+}

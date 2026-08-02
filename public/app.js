@@ -10,12 +10,16 @@ import {
 const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const FILE_CHUNK_BYTES = 48 * 1024;
 const SOCKET_BACKPRESSURE_LIMIT = 1 * 1024 * 1024;
+const runtimeConfig = Object.freeze({
+  apiBaseUrl: window.GAMLEETEE_CONFIG?.apiBaseUrl ?? window.location.origin,
+  canonicalWebUrl: window.GAMLEETEE_CONFIG?.canonicalWebUrl ?? window.location.origin,
+  native: window.GAMLEETEE_CONFIG?.native === true
+});
 
 const elements = {
   landing: document.querySelector('#landing'),
   chat: document.querySelector('#chat'),
   createRoom: document.querySelector('#create-room'),
-  install: document.querySelector('#install-app'),
   invite: document.querySelector('#invite-link'),
   copyInvite: document.querySelector('#copy-invite'),
   leave: document.querySelector('#leave-room'),
@@ -35,8 +39,13 @@ let roomKey;
 let roomId;
 let peerCount = 0;
 let receiveQueue = Promise.resolve();
-let deferredInstallPrompt;
 const incomingTransfers = new Map();
+
+window.gamleeteeApp = Object.freeze({
+  getInviteLink: () => elements.invite?.value ?? '',
+  openInvite: (url) => navigateToInvite(url),
+  isNative: runtimeConfig.native
+});
 
 bootstrap().catch((error) => {
   console.error(error);
@@ -45,10 +54,13 @@ bootstrap().catch((error) => {
 
 async function bootstrap() {
   registerServiceWorker();
-  configureInstallButton();
   bindEvents();
 
-  const url = new URL(window.location.href);
+  if (runtimeConfig.native && window.GAMLEETEE_NATIVE_READY) {
+    await window.GAMLEETEE_NATIVE_READY;
+  }
+
+  const url = new URL(window.GAMLEETEE_INITIAL_URL ?? window.location.href);
   const requestedRoom = url.searchParams.get('room');
   const secret = url.hash.slice(1);
 
@@ -59,7 +71,7 @@ async function bootstrap() {
 
   roomId = requestedRoom;
   roomKey = await importRoomKey(secret);
-  enterChat(url.href);
+  enterChat(buildInviteUrl(roomId, secret));
   connectSocket();
 }
 
@@ -77,11 +89,40 @@ function bindEvents() {
 }
 
 function createRoom() {
+  const secret = randomBase64Url(32);
+  const nextRoomId = randomBase64Url(12);
   const nextUrl = new URL(window.location.href);
   nextUrl.search = '';
-  nextUrl.hash = randomBase64Url(32);
-  nextUrl.searchParams.set('room', randomBase64Url(12));
+  nextUrl.hash = secret;
+  nextUrl.searchParams.set('room', nextRoomId);
   window.location.assign(nextUrl);
+}
+
+function buildInviteUrl(inviteRoomId, secret) {
+  const inviteUrl = new URL(runtimeConfig.canonicalWebUrl);
+  inviteUrl.search = '';
+  inviteUrl.hash = secret;
+  inviteUrl.searchParams.set('room', inviteRoomId);
+  return inviteUrl.href;
+}
+
+function navigateToInvite(invite) {
+  const incomingUrl = new URL(invite);
+  if (incomingUrl.hostname !== 'gamchat.ru' && incomingUrl.hostname !== 'www.gamchat.ru') {
+    throw new Error('Ссылка ведёт на неподдерживаемый домен.');
+  }
+
+  const targetRoom = incomingUrl.searchParams.get('room');
+  const secret = incomingUrl.hash.slice(1);
+  if (!targetRoom || !secret) {
+    throw new Error('Ссылка-приглашение неполная.');
+  }
+
+  const localUrl = new URL(window.location.href);
+  localUrl.search = '';
+  localUrl.hash = secret;
+  localUrl.searchParams.set('room', targetRoom);
+  window.location.assign(localUrl);
 }
 
 function enterChat(inviteUrl) {
@@ -94,8 +135,12 @@ function enterChat(inviteUrl) {
 }
 
 function connectSocket() {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  socket = new WebSocket(`${protocol}//${window.location.host}/ws?room=${encodeURIComponent(roomId)}`);
+  const apiUrl = new URL(runtimeConfig.apiBaseUrl);
+  const protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+  const basePath = apiUrl.pathname.replace(/\/$/u, '');
+  socket = new WebSocket(
+    `${protocol}//${apiUrl.host}${basePath}/ws?room=${encodeURIComponent(roomId)}`
+  );
 
   socket.addEventListener('open', () => {
     setConnectionState('waiting', 'Подключено. Ожидание второго участника…');
@@ -143,6 +188,7 @@ function handleSystemEvent(event) {
   } else if (event.event === 'peer-joined') {
     peerCount = event.peerCount;
     addSystemMessage('Второй участник вошёл в комнату.');
+    window.dispatchEvent(new CustomEvent('gamleetee:peer-joined'));
   } else if (event.event === 'peer-left') {
     peerCount = event.peerCount;
     addSystemMessage('Другой участник вышел из комнаты.');
@@ -378,6 +424,7 @@ function setConnectionState(state, text) {
 
 async function copyInviteLink() {
   await navigator.clipboard.writeText(elements.invite.value);
+  window.dispatchEvent(new CustomEvent('gamleetee:invite-copied'));
   const original = elements.copyInvite.textContent;
   elements.copyInvite.textContent = 'Скопировано';
   setTimeout(() => {
@@ -414,23 +461,7 @@ function formatBytes(bytes) {
 }
 
 function registerServiceWorker() {
-  if ('serviceWorker' in navigator) {
+  if (!runtimeConfig.native && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js'));
   }
-}
-
-function configureInstallButton() {
-  window.addEventListener('beforeinstallprompt', (event) => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-    elements.install.hidden = false;
-  });
-
-  elements.install.addEventListener('click', async () => {
-    if (!deferredInstallPrompt) return;
-    deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = undefined;
-    elements.install.hidden = true;
-  });
 }

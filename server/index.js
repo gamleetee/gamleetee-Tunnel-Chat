@@ -11,7 +11,7 @@ const ROOT = fileURLToPath(new URL('../public/', import.meta.url));
 const PORT = parsePositiveInteger(process.env.PORT, 3000);
 const MAX_PEERS = parsePositiveInteger(process.env.ROOM_MAX_PEERS, 2);
 const MAX_MESSAGE_BYTES = parsePositiveInteger(process.env.MAX_MESSAGE_BYTES, 262_144);
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN?.trim() || null;
+const ALLOWED_ORIGINS = parseAllowedOrigins(process.env.ALLOWED_ORIGIN);
 const ROOM_ID_PATTERN = /^[A-Za-z0-9_-]{12,64}$/;
 const rooms = new RoomRegistry({ maxPeers: MAX_PEERS });
 
@@ -61,7 +61,8 @@ server.on('upgrade', (request, socket, head) => {
       return;
     }
 
-    if (ALLOWED_ORIGIN && request.headers.origin !== ALLOWED_ORIGIN) {
+    const requestOrigin = request.headers.origin ?? '';
+    if (ALLOWED_ORIGINS.size > 0 && !ALLOWED_ORIGINS.has(requestOrigin)) {
       rejectUpgrade(socket, 403, 'Forbidden');
       return;
     }
@@ -177,6 +178,15 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`gamleetee Tunnel Chat listening on http://0.0.0.0:${PORT}`);
   console.log('Rooms and messages are held in memory only; no database is used.');
 });
+
+function parseAllowedOrigins(value) {
+  return new Set(
+    (value ?? '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+  );
+}
 
 function parsePositiveInteger(value, fallback) {
   const parsed = Number.parseInt(value ?? '', 10);

@@ -1,0 +1,19 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "__APPLE_TEAM_ID__.ru.gamleetee.gamchat",
+        "components": [
+          {
+            "/": "/",
+            "?": {
+              "room": "*"
+            },
+            "comment": "Открывает ссылки-приглашения gamleetee Чат"
+          }
+        ]
+      }
+    ]
+  }
+}
