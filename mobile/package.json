@@ -1,6 +1,6 @@
 {
   "name": "gamleetee-tunnel-chat-mobile",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,7 +16,9 @@
   },
   "dependencies": {
     "@capacitor/app": "8.1.1",
+    "@capacitor/browser": "^8.0.0",
     "@capacitor/core": "8.4.2",
+    "@capacitor/filesystem": "^8.0.0",
     "@capacitor/local-notifications": "^8.0.0",
     "@capacitor/share": "8.0.1"
   },
