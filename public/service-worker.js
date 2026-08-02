@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gamleetee-tunnel-chat-v1';
+const CACHE_NAME = 'gamleetee-tunnel-chat-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
