@@ -42,10 +42,6 @@ html = html
   .replace(
     '<script type="module" src="/app.js"></script>',
     '<script type="module" src="/native.js"></script>\n    <script type="module" src="/app.js"></script>'
-  )
-  .replace(
-    '<button id="copy-invite" class="secondary-button" type="button">Копировать</button>',
-    '<button id="copy-invite" class="secondary-button" type="button">Копировать</button>\n            <button id="share-invite" class="secondary-button" type="button">Поделиться</button>'
   );
 
 await writeFile(resolve(generatedRoot, 'index.html'), html);
@@ -54,7 +50,7 @@ const stylesPath = resolve(generatedRoot, 'styles.css');
 const styles = await readFile(stylesPath, 'utf8');
 await writeFile(
   stylesPath,
-  `${styles}\n\n#share-invite { width: 100%; }\nhtml[data-platform='ios'] body { padding-top: env(safe-area-inset-top); }\nbody { padding-bottom: env(safe-area-inset-bottom); }\n`
+  `${styles}\n\nhtml[data-platform='ios'] body { padding-top: env(safe-area-inset-top); }\n`
 );
 
 console.log('Prepared mobile web bundle from public/.');
