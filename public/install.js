@@ -2,6 +2,7 @@ import { initializeImmersiveChatNavigation } from './chat-navigation.js';
 
 const installButton = document.querySelector('#install-app');
 const installStatus = document.querySelector('#install-status');
+const versionLabel = document.querySelector('.about-card dl div:first-child dd');
 
 let installPrompt;
 
@@ -97,5 +98,6 @@ function configureInstallExperience() {
   }, { capture: true });
 }
 
+if (versionLabel) versionLabel.textContent = '0.2.1';
 initializeImmersiveChatNavigation();
 configureInstallExperience();
