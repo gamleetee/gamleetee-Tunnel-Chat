@@ -1,0 +1,436 @@
+import {
+  base64UrlToBytes,
+  bytesToBase64Url,
+  decryptEnvelope,
+  encryptPayload,
+  importRoomKey,
+  randomBase64Url
+} from './crypto.js';
+
+const MAX_FILE_BYTES = 100 * 1024 * 1024;
+const FILE_CHUNK_BYTES = 48 * 1024;
+const SOCKET_BACKPRESSURE_LIMIT = 1 * 1024 * 1024;
+
+const elements = {
+  landing: document.querySelector('#landing'),
+  chat: document.querySelector('#chat'),
+  createRoom: document.querySelector('#create-room'),
+  install: document.querySelector('#install-app'),
+  invite: document.querySelector('#invite-link'),
+  copyInvite: document.querySelector('#copy-invite'),
+  leave: document.querySelector('#leave-room'),
+  status: document.querySelector('#connection-status'),
+  messages: document.querySelector('#messages'),
+  composer: document.querySelector('#composer'),
+  message: document.querySelector('#message-input'),
+  send: document.querySelector('#send-message'),
+  fileInput: document.querySelector('#file-input'),
+  fileButton: document.querySelector('#choose-file'),
+  transfers: document.querySelector('#transfers'),
+  roomCode: document.querySelector('#room-code')
+};
+
+let socket;
+let roomKey;
+let roomId;
+let peerCount = 0;
+let receiveQueue = Promise.resolve();
+let deferredInstallPrompt;
+const incomingTransfers = new Map();
+
+bootstrap().catch((error) => {
+  console.error(error);
+  showFatal(error.message);
+});
+
+async function bootstrap() {
+  registerServiceWorker();
+  configureInstallButton();
+  bindEvents();
+
+  const url = new URL(window.location.href);
+  const requestedRoom = url.searchParams.get('room');
+  const secret = url.hash.slice(1);
+
+  if (!requestedRoom && !secret) return;
+  if (!requestedRoom || !secret) {
+    throw new Error('The invitation link is incomplete. Ask the room creator for a new link.');
+  }
+
+  roomId = requestedRoom;
+  roomKey = await importRoomKey(secret);
+  enterChat(url.href);
+  connectSocket();
+}
+
+function bindEvents() {
+  elements.createRoom.addEventListener('click', createRoom);
+  elements.copyInvite.addEventListener('click', copyInviteLink);
+  elements.leave.addEventListener('click', leaveRoom);
+  elements.composer.addEventListener('submit', sendChatMessage);
+  elements.fileButton.addEventListener('click', () => elements.fileInput.click());
+  elements.fileInput.addEventListener('change', () => {
+    const [file] = elements.fileInput.files;
+    if (file) sendFile(file).catch(handleTransferError);
+    elements.fileInput.value = '';
+  });
+}
+
+function createRoom() {
+  const nextUrl = new URL(window.location.href);
+  nextUrl.search = '';
+  nextUrl.hash = randomBase64Url(32);
+  nextUrl.searchParams.set('room', randomBase64Url(12));
+  window.location.assign(nextUrl);
+}
+
+function enterChat(inviteUrl) {
+  elements.landing.hidden = true;
+  elements.chat.hidden = false;
+  elements.invite.value = inviteUrl;
+  elements.roomCode.textContent = roomId.slice(0, 8);
+  setConnectionState('connecting', 'Connecting to the secure room…');
+  updateControls();
+}
+
+function connectSocket() {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  socket = new WebSocket(`${protocol}//${window.location.host}/ws?room=${encodeURIComponent(roomId)}`);
+
+  socket.addEventListener('open', () => {
+    setConnectionState('waiting', 'Connected. Waiting for the second participant…');
+  });
+
+  socket.addEventListener('message', (event) => {
+    receiveQueue = receiveQueue
+      .then(() => handleSocketMessage(event.data))
+      .catch((error) => {
+        console.error('Unable to process incoming message', error);
+        addSystemMessage('An encrypted message could not be decrypted. The invitation keys may differ.');
+      });
+  });
+
+  socket.addEventListener('close', (event) => {
+    peerCount = 0;
+    const message = event.code === 4003
+      ? 'This room already has two participants.'
+      : 'Disconnected from the tunnel.';
+    setConnectionState('offline', message);
+    updateControls();
+  });
+
+  socket.addEventListener('error', () => {
+    setConnectionState('offline', 'Unable to connect to the tunnel server.');
+  });
+}
+
+async function handleSocketMessage(rawData) {
+  const text = typeof rawData === 'string' ? rawData : await rawData.text();
+  const parsed = JSON.parse(text);
+
+  if (parsed.type === 'system') {
+    handleSystemEvent(parsed);
+    return;
+  }
+
+  const payload = await decryptEnvelope(roomKey, text);
+  await handleEncryptedPayload(payload);
+}
+
+function handleSystemEvent(event) {
+  if (event.event === 'connected') {
+    peerCount = event.peerCount;
+  } else if (event.event === 'peer-joined') {
+    peerCount = event.peerCount;
+    addSystemMessage('The second participant joined the room.');
+  } else if (event.event === 'peer-left') {
+    peerCount = event.peerCount;
+    addSystemMessage('The other participant left the room.');
+  }
+
+  if (peerCount === 2) {
+    setConnectionState('online', 'Encrypted tunnel active');
+  } else {
+    setConnectionState('waiting', 'Waiting for the second participant…');
+  }
+
+  updateControls();
+}
+
+async function handleEncryptedPayload(payload) {
+  switch (payload.kind) {
+    case 'chat':
+      addChatMessage(payload.text, 'incoming', payload.sentAt);
+      break;
+    case 'file-start':
+      startIncomingTransfer(payload);
+      break;
+    case 'file-chunk':
+      receiveFileChunk(payload);
+      break;
+    case 'file-end':
+      finishIncomingTransfer(payload);
+      break;
+    default:
+      throw new Error('Unknown encrypted payload type.');
+  }
+}
+
+async function sendChatMessage(event) {
+  event.preventDefault();
+  const text = elements.message.value.trim();
+  if (!text || !canSend()) return;
+
+  const sentAt = new Date().toISOString();
+  await sendEncrypted({ kind: 'chat', id: crypto.randomUUID(), text, sentAt });
+  addChatMessage(text, 'outgoing', sentAt);
+  elements.message.value = '';
+  elements.message.focus();
+}
+
+async function sendFile(file) {
+  if (!canSend()) throw new Error('The second participant is not connected yet.');
+  if (file.size > MAX_FILE_BYTES) {
+    throw new Error('The current MVP accepts files up to 100 MB.');
+  }
+
+  const transferId = crypto.randomUUID();
+  const totalChunks = Math.ceil(file.size / FILE_CHUNK_BYTES);
+  const transfer = createTransferCard(file.name, file.size, 'outgoing');
+
+  await sendEncrypted({
+    kind: 'file-start',
+    transferId,
+    name: file.name,
+    size: file.size,
+    mime: file.type || 'application/octet-stream',
+    totalChunks
+  });
+
+  for (let index = 0; index < totalChunks; index += 1) {
+    const offset = index * FILE_CHUNK_BYTES;
+    const chunk = new Uint8Array(await file.slice(offset, offset + FILE_CHUNK_BYTES).arrayBuffer());
+
+    await waitForSocketDrain();
+    await sendEncrypted({
+      kind: 'file-chunk',
+      transferId,
+      index,
+      data: bytesToBase64Url(chunk)
+    });
+
+    updateTransferCard(transfer, ((index + 1) / totalChunks) * 100, 'Sending…');
+  }
+
+  await sendEncrypted({ kind: 'file-end', transferId });
+  updateTransferCard(transfer, 100, 'Sent');
+}
+
+function startIncomingTransfer(payload) {
+  if (
+    typeof payload.name !== 'string' ||
+    !Number.isInteger(payload.size) ||
+    payload.size < 0 ||
+    payload.size > MAX_FILE_BYTES ||
+    !Number.isInteger(payload.totalChunks) ||
+    payload.totalChunks < 0
+  ) {
+    throw new Error('Invalid file metadata.');
+  }
+
+  incomingTransfers.set(payload.transferId, {
+    ...payload,
+    chunks: new Array(payload.totalChunks),
+    receivedChunks: 0,
+    card: createTransferCard(payload.name, payload.size, 'incoming')
+  });
+}
+
+function receiveFileChunk(payload) {
+  const transfer = incomingTransfers.get(payload.transferId);
+  if (!transfer || !Number.isInteger(payload.index) || payload.index < 0 || payload.index >= transfer.totalChunks) {
+    throw new Error('Invalid file chunk.');
+  }
+
+  if (!transfer.chunks[payload.index]) {
+    transfer.chunks[payload.index] = base64UrlToBytes(payload.data);
+    transfer.receivedChunks += 1;
+  }
+
+  const progress = transfer.totalChunks === 0
+    ? 100
+    : (transfer.receivedChunks / transfer.totalChunks) * 100;
+  updateTransferCard(transfer.card, progress, 'Receiving…');
+}
+
+function finishIncomingTransfer(payload) {
+  const transfer = incomingTransfers.get(payload.transferId);
+  if (!transfer || transfer.receivedChunks !== transfer.totalChunks) {
+    throw new Error('The file transfer is incomplete.');
+  }
+
+  const blob = new Blob(transfer.chunks, { type: transfer.mime });
+  const downloadUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = downloadUrl;
+  link.download = transfer.name;
+  link.textContent = 'Download file';
+  link.className = 'download-link';
+  link.addEventListener('click', () => setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000), {
+    once: true
+  });
+
+  transfer.card.querySelector('.transfer-actions').append(link);
+  updateTransferCard(transfer.card, 100, 'Received');
+  incomingTransfers.delete(payload.transferId);
+}
+
+async function sendEncrypted(payload) {
+  if (!canSend()) throw new Error('The encrypted tunnel is not ready.');
+  const envelope = await encryptPayload(roomKey, payload);
+  socket.send(envelope);
+}
+
+async function waitForSocketDrain() {
+  while (socket?.readyState === WebSocket.OPEN && socket.bufferedAmount > SOCKET_BACKPRESSURE_LIMIT) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+
+  if (!canSend()) throw new Error('The other participant disconnected during the transfer.');
+}
+
+function canSend() {
+  return socket?.readyState === WebSocket.OPEN && peerCount === 2;
+}
+
+function updateControls() {
+  const enabled = canSend();
+  elements.message.disabled = !enabled;
+  elements.send.disabled = !enabled;
+  elements.fileButton.disabled = !enabled;
+  elements.message.placeholder = enabled
+    ? 'Write a message…'
+    : 'Waiting for the second participant…';
+}
+
+function addChatMessage(text, direction, sentAt) {
+  const item = document.createElement('article');
+  item.className = `message ${direction}`;
+
+  const body = document.createElement('p');
+  body.textContent = text;
+
+  const time = document.createElement('time');
+  time.dateTime = sentAt;
+  time.textContent = new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(sentAt));
+
+  item.append(body, time);
+  elements.messages.append(item);
+  elements.messages.scrollTop = elements.messages.scrollHeight;
+}
+
+function addSystemMessage(text) {
+  const item = document.createElement('p');
+  item.className = 'system-message';
+  item.textContent = text;
+  elements.messages.append(item);
+  elements.messages.scrollTop = elements.messages.scrollHeight;
+}
+
+function createTransferCard(name, size, direction) {
+  const card = document.createElement('article');
+  card.className = `transfer-card ${direction}`;
+
+  const title = document.createElement('strong');
+  title.textContent = name;
+
+  const meta = document.createElement('span');
+  meta.textContent = formatBytes(size);
+
+  const status = document.createElement('span');
+  status.className = 'transfer-status';
+  status.textContent = direction === 'incoming' ? 'Preparing to receive…' : 'Preparing to send…';
+
+  const progress = document.createElement('progress');
+  progress.max = 100;
+  progress.value = 0;
+
+  const actions = document.createElement('div');
+  actions.className = 'transfer-actions';
+
+  card.append(title, meta, progress, status, actions);
+  elements.transfers.prepend(card);
+  return card;
+}
+
+function updateTransferCard(card, value, label) {
+  card.querySelector('progress').value = value;
+  card.querySelector('.transfer-status').textContent = label;
+}
+
+function setConnectionState(state, text) {
+  elements.status.dataset.state = state;
+  elements.status.textContent = text;
+}
+
+async function copyInviteLink() {
+  await navigator.clipboard.writeText(elements.invite.value);
+  const original = elements.copyInvite.textContent;
+  elements.copyInvite.textContent = 'Copied';
+  setTimeout(() => {
+    elements.copyInvite.textContent = original;
+  }, 1_500);
+}
+
+function leaveRoom() {
+  socket?.close(1000, 'User left');
+  const cleanUrl = new URL(window.location.href);
+  cleanUrl.search = '';
+  cleanUrl.hash = '';
+  window.location.assign(cleanUrl);
+}
+
+function handleTransferError(error) {
+  console.error(error);
+  addSystemMessage(error.message || 'File transfer failed.');
+}
+
+function showFatal(message) {
+  elements.landing.hidden = false;
+  elements.chat.hidden = true;
+  const error = document.querySelector('#fatal-error');
+  error.hidden = false;
+  error.textContent = message;
+}
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return `${(bytes / 1024 ** index).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+}
+
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js'));
+  }
+}
+
+function configureInstallButton() {
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    elements.install.hidden = false;
+  });
+
+  elements.install.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = undefined;
+    elements.install.hidden = true;
+  });
+}
