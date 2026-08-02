@@ -10,6 +10,7 @@
     "prepare:android": "npm run clean:android && npm run build:web && npx cap add android && npx cap sync android && node scripts/configure-android.mjs",
     "prepare:ios": "npm run clean:ios && npm run build:web && npx cap add ios && npx cap sync ios && node scripts/configure-ios.mjs",
     "build:android:debug": "npm run prepare:android && cd android && ./gradlew assembleDebug",
+    "build:android:release": "npm run prepare:android && node scripts/configure-android-version.mjs && node scripts/configure-android-release.mjs && cd android && ./gradlew assembleRelease bundleRelease",
     "build:ios:simulator": "npm run prepare:ios && xcodebuild -project ios/App/App.xcodeproj -scheme App -sdk iphonesimulator -configuration Debug -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO build",
     "verify": "node scripts/verify-config.mjs"
   },

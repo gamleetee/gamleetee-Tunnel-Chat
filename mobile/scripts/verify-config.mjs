@@ -9,6 +9,8 @@ const requiredFiles = [
   'src/native.js',
   'scripts/prepare-web.mjs',
   'scripts/configure-android.mjs',
+  'scripts/configure-android-release.mjs',
+  'scripts/configure-android-version.mjs',
   'scripts/configure-ios.mjs'
 ];
 
@@ -29,6 +31,18 @@ if (capacitorConfig.webDir !== 'www') {
 const nativeBridge = await readFile(resolve(root, 'src/native.js'), 'utf8');
 if (!nativeBridge.includes('gamchat.ru')) {
   throw new Error('В нативном мосте отсутствует домен gamchat.ru.');
+}
+
+const releaseScript = await readFile(resolve(root, 'scripts/configure-android-release.mjs'), 'utf8');
+for (const variable of [
+  'ANDROID_KEYSTORE_FILE',
+  'ANDROID_KEYSTORE_PASSWORD',
+  'ANDROID_KEY_ALIAS',
+  'ANDROID_KEY_PASSWORD'
+]) {
+  if (!releaseScript.includes(variable)) {
+    throw new Error(`В release-конфигурации отсутствует ${variable}.`);
+  }
 }
 
 console.log('Mobile configuration is valid.');

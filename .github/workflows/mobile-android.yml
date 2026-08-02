@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - feature/mobile-app-foundation
+      - feature/android-release-pipeline
     paths:
       - 'mobile/**'
       - 'public/**'
@@ -20,9 +20,9 @@ permissions:
   contents: read
 
 jobs:
-  build-debug-apk:
+  build-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -53,20 +53,73 @@ jobs:
         working-directory: mobile
         run: npm run verify
 
-      - name: Build debug APK
+      - name: Prepare Android project
         working-directory: mobile
-        run: npm run build:android:debug
+        run: npm run prepare:android
 
-      - name: Prepare artifact
+      - name: Build debug APK
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug
+
+      - name: Create temporary CI signing key
+        env:
+          CI_KEYSTORE_PASSWORD: gamleetee-ci-temporary-password
+          CI_KEY_ALIAS: gamleetee-ci
+        run: |
+          keytool -genkeypair -noprompt \
+            -keystore "$RUNNER_TEMP/gamleetee-ci-release.jks" \
+            -storepass "$CI_KEYSTORE_PASSWORD" \
+            -keypass "$CI_KEYSTORE_PASSWORD" \
+            -alias "$CI_KEY_ALIAS" \
+            -keyalg RSA \
+            -keysize 4096 \
+            -validity 3650 \
+            -dname "CN=gamleetee CI, OU=CI, O=gamleetee, L=Internet, ST=Internet, C=FR"
+
+      - name: Configure signed test release
+        working-directory: mobile
+        env:
+          ANDROID_KEYSTORE_FILE: ${{ runner.temp }}/gamleetee-ci-release.jks
+          ANDROID_KEYSTORE_PASSWORD: gamleetee-ci-temporary-password
+          ANDROID_KEY_ALIAS: gamleetee-ci
+          ANDROID_KEY_PASSWORD: gamleetee-ci-temporary-password
+          ANDROID_VERSION_NAME: 0.0.${{ github.run_number }}
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          node scripts/configure-android-version.mjs
+          node scripts/configure-android-release.mjs
+
+      - name: Build signed test APK and AAB
+        working-directory: mobile/android
+        env:
+          ANDROID_KEYSTORE_FILE: ${{ runner.temp }}/gamleetee-ci-release.jks
+          ANDROID_KEYSTORE_PASSWORD: gamleetee-ci-temporary-password
+          ANDROID_KEY_ALIAS: gamleetee-ci
+          ANDROID_KEY_PASSWORD: gamleetee-ci-temporary-password
+        run: ./gradlew assembleRelease bundleRelease
+
+      - name: Verify APK signature
+        run: |
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify \
+            --verbose \
+            --print-certs \
+            mobile/android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Prepare artifacts
         run: |
           mkdir -p artifacts
-          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk artifacts/gamleetee-chat-debug.apk
-          sha256sum artifacts/gamleetee-chat-debug.apk > artifacts/gamleetee-chat-debug.apk.sha256
+          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
+            artifacts/gamleetee-chat-debug.apk
+          cp mobile/android/app/build/outputs/apk/release/app-release.apk \
+            artifacts/gamleetee-chat-ci-signed.apk
+          cp mobile/android/app/build/outputs/bundle/release/app-release.aab \
+            artifacts/gamleetee-chat-ci-signed.aab
+          sha256sum artifacts/* > artifacts/SHA256SUMS.txt
 
-      - name: Upload Android APK
+      - name: Upload Android builds
         uses: actions/upload-artifact@v4
         with:
-          name: gamleetee-chat-android-debug
+          name: gamleetee-chat-android
           path: artifacts/*
           if-no-files-found: error
           retention-days: 14
