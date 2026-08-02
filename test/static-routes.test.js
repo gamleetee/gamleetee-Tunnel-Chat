@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const PORT = 43_000 + (process.pid % 1_000);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
-const ANDROID_DOWNLOAD_URL = 'https://github.com/gamleetee/gamleetee-Tunnel-Chat/releases/download/mobile-v0.2.1/gamleetee-chat.apk';
+const ANDROID_DOWNLOAD_URL = 'https://github.com/gamleetee/gamleetee-Tunnel-Chat/releases/download/mobile-v0.2.2/gamleetee-chat.apk';
 const ANDROID_CERTIFICATE = '57:58:6C:A8:AB:1A:79:57:DE:01:20:6C:21:42:A5:E6:84:B1:D9:76:0C:17:45:7B:89:92:04:C4:7A:65:B7:CD';
 
 test('purple navigation shell and static application routes are available', { timeout: 15_000 }, async (context) => {
@@ -55,9 +55,10 @@ test('purple navigation shell and static application routes are available', { ti
 
   const appsHtml = await response.text();
   assert.match(appsHtml, /<h1>Приложения<\/h1>/);
-  assert.match(appsHtml, /Версия 0\.2\.1/);
+  assert.match(appsHtml, /Версия 0\.2\.2/);
   assert.ok(appsHtml.includes(ANDROID_DOWNLOAD_URL));
   assert.match(appsHtml, />Скачать APK<\/a>/);
+  assert.match(appsHtml, /Documents\/gamchat/);
   assert.match(appsHtml, /Вам пришло сообщение/);
 
   const headResponse = await fetch(`${BASE_URL}/apps/`, { method: 'HEAD' });
